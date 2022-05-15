@@ -2,9 +2,9 @@ import java.io.File;
 import java.util.ArrayList;
 
 public class Dataset1Processor extends DatasetProcessor {
-    String basePath = "C:/_My Files/Johan/GitHub/Skripsi-NAT5102/Dataset/Dataset_temp/";
-    File testPath = new File(basePath + "test/");
-    File trainPath = new File(basePath + "train/");
+    String basePath = "C:\\_My Files\\Johan\\GitHub\\Skripsi-NAT5102\\Dataset\\Dataset_temp\\";
+    File testPath = new File(basePath + "test\\");
+    File trainPath = new File(basePath + "train\\");
     int datasetSize = 70;
     ArrayList<String>[] realTestPaths;
     ArrayList<String>[] forgedTestPaths;
