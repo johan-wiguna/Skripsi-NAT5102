@@ -33,8 +33,63 @@ public class WLISValidator extends Validator {
 //        }
         
         // Finding LIS with the most weight by rotating the train image
+        double finalMaxWeight = Double.MIN_VALUE;
+        int finalImageIdx = -1;
+        
+        for (int i = 0; i < labelledKeypoint.size(); i++) {
+            int[] lisInit = getLIS(labelledKeypoint.get(i));
+            double maxWeight = getTotalWeight(lisInit, keypointsWeight);
+            int angle = 10;
+            System.out.println("i = " + i);
+            for (int j = 0; j < 360/angle; j++) {
+                System.out.println("j ========================================================= " + j);
+                for (int k = 0; k < labelledKeypoint.get(i).size(); k++) {
+                    double x = labelledKeypoint.get(i).get(j).x;
+                    double y = labelledKeypoint.get(i).get(j).y;
+                    double newX = x * Math.cos(angle) - y * Math.sin(angle);
+                    double newY = x * Math.sin(angle) + y * Math.cos(angle);
+                    
+                    labelledKeypoint.get(i).get(j).setX(newX);
+                    labelledKeypoint.get(i).get(j).setY(newY);
+                    
+                    if (k == 1) {
+                        System.out.println("x = " + x + "; y = " + y);
+                        System.out.println("newX = " + labelledKeypoint.get(i).get(j).x + "; newY = " + labelledKeypoint.get(i).get(j).y);
+                    }
+                }
+                
+                Collections.sort(labelledKeypoint.get(i));
+                int[] currLIS = getLIS(labelledKeypoint.get(i));
+                double currWeight = getTotalWeight(currLIS, keypointsWeight);
+                
+                if (currWeight > maxWeight) {
+                    maxWeight = currWeight;
+                }
+            }
+            
+            if (maxWeight > finalMaxWeight) {
+                finalMaxWeight = maxWeight;
+                finalImageIdx = i;
+            }
+        }
+        System.out.println("----------------");
         
         // Calculate similarity between test image and the best matched train image
+        System.out.println("Most similar image: " + finalImageIdx);
+        System.out.println("Weight: " + finalMaxWeight);
+        System.out.println("testImg: " + testImage.path);
+        int currIdx = 0;
+        loop:
+        for (ArrayList<ImageData> trainImage : trainImages) {
+            for (ImageData imageData : trainImage) {
+                if (currIdx == finalImageIdx) {
+                    System.out.println("trainImg: " + imageData.path);
+                    break loop;
+                }
+                
+                currIdx++;
+            }
+        }
     }
     
     public double[] assignWeight() {
@@ -49,7 +104,7 @@ public class WLISValidator extends Validator {
                 DMatch[] dm = matches.get(j).get(i).toArray();
                 double currDist = dm[0].distance;
                 
-                if (currDist < d1) {
+                if (currDist < d1 && currDist != 0.0) {
                     d1 = currDist;
                     d1ImageIdx = j;
                 }
@@ -60,13 +115,13 @@ public class WLISValidator extends Validator {
                     DMatch[] dm = matches.get(j).get(i).toArray();
                     double currDist = dm[0].distance;
                     
-                    if (currDist < d2) {
+                    if (currDist < d2 && currDist != 0.0) {
                         d2 = currDist;
                     }
                 }
             }
-            
-            weights[i] = 1.0 - (d1/d2);
+//            System.out.println("d1 = " + d1 + "; d2 = " + d2);
+            weights[i] = 1.0 - (d1 / d2);
         }
         return weights;
     }
@@ -138,37 +193,58 @@ public class WLISValidator extends Validator {
         return lstFiltered;
     }
  
-    public Stack getLongestIncreasingSubsequence(ArrayList<LabelledKeypoint> lk) {
+    public int[] getLIS(ArrayList<LabelledKeypoint> lk) {
         int n = lk.size();
         
-        int[] labels = new int[n];
+        int[] arr = new int[n];
         int[] len = new int[n];
         int[] idx = new int[n];
         
         for (int i = 0; i < n; i++) {
-            for (int j = 0; j < i-1; j++) {
-                if (labels[i] > labels[j] && len[i] < len[j] + 1) {
+            arr[i] = lk.get(i).label;
+            len[i] = 1;
+            idx[i] = -1;
+        }
+        
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < i; j++) {
+                if (arr[i] > arr[j] && len[i] < len[j] + 1) {
                     len[i] = len[j] + 1;
                     idx[i] = j;
                 }
             }
         }
         
-        int maxLen = 0;
+        int maxIdx = 0;
         for (int i = 1; i < n; i++) {
-            if (len[i] > len[maxLen]) {
-                maxLen = i;
+            if (len[i] > len[maxIdx]) {
+                maxIdx = i;
             }
         }
         
-        Stack lis = new Stack();
-        int k = maxLen;
-        while (idx[k] != 1) {
-            lis.push(labels[idx[k]]);
+        int[] lis = new int[len[maxIdx]];
+        int k = maxIdx;
+        int currIdx = lis.length - 1;
+        
+        while (idx[k] != -1) {
+            lis[currIdx] = arr[k];
             k = idx[k];
+            currIdx--;
         }
         
+        lis[0] = arr[k];
+        
         return lis;
+    }
+    
+    public double getTotalWeight(int[] lis, double[] keypointsWeight) {
+        double weight = 0.0;
+        
+        for (int i = 0; i < lis.length; i++) {
+            weight += keypointsWeight[lis[i]];
+        }
+        
+        return weight;
     }
     
     public void rotateImage(double x, double y, double angle) {
