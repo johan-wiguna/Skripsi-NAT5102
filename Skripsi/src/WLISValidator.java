@@ -42,20 +42,19 @@ public class WLISValidator extends Validator {
             int angle = 10;
             System.out.println("i = " + i);
             for (int j = 0; j < 360/angle; j++) {
-                System.out.println("j ========================================================= " + j);
                 for (int k = 0; k < labelledKeypoint.get(i).size(); k++) {
-                    double x = labelledKeypoint.get(i).get(j).x;
-                    double y = labelledKeypoint.get(i).get(j).y;
+                    double x = labelledKeypoint.get(i).get(k).x;
+                    double y = labelledKeypoint.get(i).get(k).y;
                     double newX = x * Math.cos(angle) - y * Math.sin(angle);
                     double newY = x * Math.sin(angle) + y * Math.cos(angle);
                     
-                    labelledKeypoint.get(i).get(j).setX(newX);
-                    labelledKeypoint.get(i).get(j).setY(newY);
+                    labelledKeypoint.get(i).get(k).setX(newX);
+                    labelledKeypoint.get(i).get(k).setY(newY);
                     
-                    if (k == 1) {
-                        System.out.println("x = " + x + "; y = " + y);
-                        System.out.println("newX = " + labelledKeypoint.get(i).get(j).x + "; newY = " + labelledKeypoint.get(i).get(j).y);
-                    }
+//                    if (k == 1) {
+//                        System.out.println("x = " + x + "; y = " + y);
+//                        System.out.println("newX = " + labelledKeypoint.get(i).get(k).x + "; newY = " + labelledKeypoint.get(i).get(k).y);
+//                    }
                 }
                 
                 Collections.sort(labelledKeypoint.get(i));
@@ -65,6 +64,8 @@ public class WLISValidator extends Validator {
                 if (currWeight > maxWeight) {
                     maxWeight = currWeight;
                 }
+                
+                System.out.println("cw = " + currWeight);
             }
             
             if (maxWeight > finalMaxWeight) {
