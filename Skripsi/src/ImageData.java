@@ -1,4 +1,3 @@
-import java.util.ArrayList;
 import org.opencv.core.*;
 import org.opencv.imgcodecs.*;
 import org.opencv.features2d.*;
