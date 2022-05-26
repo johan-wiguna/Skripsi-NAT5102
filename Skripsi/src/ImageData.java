@@ -10,6 +10,13 @@ public class ImageData {
     Mat image;
     Mat descriptor;
     MatOfKeyPoint keypoints;
+    
+    public ImageData(String path, boolean type, int index) {
+        this.path = path;
+        this.type = type;
+        keypoints = new MatOfKeyPoint();
+        descriptor = new Mat();
+    }
 
     public String getPath() {
         return path;
@@ -34,18 +41,18 @@ public class ImageData {
     public MatOfKeyPoint getKeypoints() {
         return keypoints;
     }
-
-    public ImageData(String path, boolean type, int index) {
-        this.path = path;
-        this.type = type;
-        keypoints = new MatOfKeyPoint();
-        descriptor = new Mat();
-    }
     
     public void detectKeypoints() {
         image = Imgcodecs.imread(path, Imgcodecs.IMREAD_GRAYSCALE);
         
         SIFT sift = SIFT.create();
+        sift.detectAndCompute(image, new Mat(), keypoints, descriptor);
+    }
+    
+    public void detectKeypoints(int keypointAmount) {
+        image = Imgcodecs.imread(path, Imgcodecs.IMREAD_GRAYSCALE);
+        
+        SIFT sift = SIFT.create(keypointAmount);
         sift.detectAndCompute(image, new Mat(), keypoints, descriptor);
     }
 }

@@ -2,8 +2,6 @@ import java.util.*;
 import org.opencv.core.*;
 
 public class WLISValidator extends Validator {
-    double threshold = 0;
-    ImageProcessor ip;
     ArrayList<ImageData>[] trainImages;
     ImageData testImage;
     ArrayList<ArrayList<MatOfDMatch>> matches;
@@ -11,7 +9,6 @@ public class WLISValidator extends Validator {
     int trainImageCount;
     
     public WLISValidator(ArrayList<ImageData>[] trainImages, ImageData testImage, ArrayList<ArrayList<MatOfDMatch>> matches) {
-        this.ip = new ImageProcessor();
         this.trainImages = trainImages;
         this.testImage = testImage;
         this.matches = matches;
@@ -25,12 +22,6 @@ public class WLISValidator extends Validator {
         
         // Label every test image keypoint and its pair
         ArrayList<ArrayList<LabelledKeypoint>> labelledKeypoint = labelMatches();
-//        for (ArrayList<LabelledKeypoint> arrayList : labelledKeypoint) {
-//            for (LabelledKeypoint labelledKeypoint1 : arrayList) {
-//                System.out.print(labelledKeypoint1.label + ", ");
-//            }
-//            System.out.println("");
-//        }
         
         // Finding LIS with the most weight by rotating the train image
         double finalMaxWeight = Double.MIN_VALUE;
@@ -40,21 +31,17 @@ public class WLISValidator extends Validator {
             int[] lisInit = getLIS(labelledKeypoint.get(i));
             double maxWeight = getTotalWeight(lisInit, keypointsWeight);
             int angle = 10;
-            System.out.println("i = " + i);
+            
             for (int j = 0; j < 360/angle; j++) {
                 for (int k = 0; k < labelledKeypoint.get(i).size(); k++) {
-                    double x = labelledKeypoint.get(i).get(k).x;
-                    double y = labelledKeypoint.get(i).get(k).y;
+                    double x = labelledKeypoint.get(i).get(k).getX();
+                    double y = labelledKeypoint.get(i).get(k).getY();
+                    
                     double newX = x * Math.cos(angle) - y * Math.sin(angle);
                     double newY = x * Math.sin(angle) + y * Math.cos(angle);
                     
                     labelledKeypoint.get(i).get(k).setX(newX);
                     labelledKeypoint.get(i).get(k).setY(newY);
-                    
-//                    if (k == 1) {
-//                        System.out.println("x = " + x + "; y = " + y);
-//                        System.out.println("newX = " + labelledKeypoint.get(i).get(k).x + "; newY = " + labelledKeypoint.get(i).get(k).y);
-//                    }
                 }
                 
                 Collections.sort(labelledKeypoint.get(i));
@@ -65,7 +52,6 @@ public class WLISValidator extends Validator {
                     maxWeight = currWeight;
                 }
                 
-                System.out.println("cw = " + currWeight);
             }
             
             if (maxWeight > finalMaxWeight) {
@@ -73,13 +59,13 @@ public class WLISValidator extends Validator {
                 finalImageIdx = i;
             }
         }
-        System.out.println("----------------");
+        System.out.println("----------------------------");
         
         // Calculate similarity between test image and the best matched train image
-        System.out.println("Most similar image: " + finalImageIdx);
         System.out.println("Weight: " + finalMaxWeight);
         System.out.println("testImg: " + testImage.path);
         int currIdx = 0;
+        
         loop:
         for (ArrayList<ImageData> trainImage : trainImages) {
             for (ImageData imageData : trainImage) {
@@ -105,7 +91,7 @@ public class WLISValidator extends Validator {
                 DMatch[] dm = matches.get(j).get(i).toArray();
                 double currDist = dm[0].distance;
                 
-                if (currDist < d1 && currDist != 0.0) {
+                if (currDist < d1) {
                     d1 = currDist;
                     d1ImageIdx = j;
                 }
@@ -116,14 +102,20 @@ public class WLISValidator extends Validator {
                     DMatch[] dm = matches.get(j).get(i).toArray();
                     double currDist = dm[0].distance;
                     
-                    if (currDist < d2 && currDist != 0.0) {
+                    if (currDist < d2) {
                         d2 = currDist;
                     }
                 }
             }
-//            System.out.println("d1 = " + d1 + "; d2 = " + d2);
-            weights[i] = 1.0 - (d1 / d2);
+            
+            if (d2 == 0) {
+                weights[i] = 0.0;
+            } else {
+                weights[i] = 1.0 - (d1 / d2);
+            }
+//            System.out.println(weights[i]);
         }
+        
         return weights;
     }
     
@@ -177,9 +169,9 @@ public class WLISValidator extends Validator {
         
         // Get rid of keypoints that doesn't have any pair
         ArrayList<ArrayList<LabelledKeypoint>> lstFiltered = new ArrayList<>();
-        for (ArrayList<LabelledKeypoint> list : lstFiltered) {
+        lstFiltered.forEach(list -> {
             list = new ArrayList<>();
-        }
+        });
         
         for (int i = 0; i < trainLabels.length; i++) {
             ArrayList<LabelledKeypoint> temp = new ArrayList<>();
@@ -246,9 +238,5 @@ public class WLISValidator extends Validator {
         }
         
         return weight;
-    }
-    
-    public void rotateImage(double x, double y, double angle) {
-        
     }
 }
