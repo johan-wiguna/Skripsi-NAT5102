@@ -1,40 +1,27 @@
 import java.util.*;
 import org.opencv.core.*;
 
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
-/**
- *
- * @author johan
- */
-public class HMMValidator extends Validator {
-    ArrayList<ImageData> trainImages;
-    ImageData testImage;
+public class HMM {
+    ImageData image;
     ArrayList<ArrayList<MatOfDMatch>> matches;
-    int testKeypointCount;
-    int trainImageCount;
-    int clusterCount = 2;
+    int clusterCount;
+    int[] keypointCluster;
+    double[] initial = {1, 0, 0, 0};
+    double[][] transition;
+    double[][] emission;
+    double[][] alpha;
+    double[][] beta;
+    double[][][] xi;
+    double[][] gamma;
     
-    public HMMValidator(ArrayList<ImageData> trainImages, ImageData testImage, ArrayList<ArrayList<MatOfDMatch>> matches) {
-        this.trainImages = trainImages;
-        this.testImage = testImage;
-        this.matches = matches;
-        this.testKeypointCount = testImage.descriptor.height();
-        this.trainImageCount = trainImageCount = matches.size();
+    public HMM(ImageData image, int clusterCount) {
+        this.image = image;
+        this.clusterCount = clusterCount;
     }
     
-    public void validateImage() {
-        buildImageModel(trainImages.get(0));
-    }
-    
-    public void buildImageModel(ImageData image) {
-        double[] initial = {1, 0, 0, 0};
-        double[][] transition = new double[4][4]; // transition[i][j] = P(i|j)
-        double[][] emission = new double[clusterCount][4]; // emission[i][j] = P(i|j)
+    public void buildImageModel() {
+        transition = new double[4][4]; // transition[i][j] = P(i|j) = j -> i
+        emission = new double[clusterCount][4]; // emission[i][j] = P(i|j)
         
         // Initialize A and B randomly
         Random random = new Random();
@@ -51,8 +38,8 @@ public class HMMValidator extends Validator {
         }
         
         // Make the random values sum up to 1 (normalization)
-        transition = normalizeProbabilities(transition);
-        emission = normalizeProbabilities(emission);
+        normalizeProbabilities(transition);
+        normalizeProbabilities(emission);
         
         System.out.printf("OLD%n");
         for (double[] trs : transition) {
@@ -65,72 +52,101 @@ public class HMMValidator extends Validator {
         
         // Determine bounds for this image
         double[] imageBounds = segmentImage(image);
+        
         // Cluster keypoints
         KMeans km = new KMeans(clusterCount, imageBounds);
-        int[] keypointCluster = km.clusterKeypoints(image);
+        keypointCluster = km.clusterKeypoints(image);
+        
         // Re-estimate parameter with Baum-Welch algorithm
-        trainImageModel(keypointCluster, initial, transition, emission, clusterCount);
+        reestimateParameters();
     }
     
-    public double[][] normalizeProbabilities(double[][] arr) {
-        double[] sum = new double[arr.length];
+    public void reestimateParameters() {
+        double prevProb = 0;
         
-        for (int i = 0; i < arr.length; i++) {
-            for (int j = 0; j < arr[i].length; j++) {
-                sum[i] += arr[i][j];
+        double[][] tempTransition = transition;
+        double[][] tempEmission = emission;
+        double[][] tempAlpha = alpha;
+        double[][] tempBeta = beta;
+        double[][][] tempXi = xi;
+        double[][] tempGamma = gamma;
+        
+        boolean isFirst = true;
+        while (true) {
+            trainImageModel();
+            
+            double currProb = 0;
+            for (int t = 0; t < keypointCluster.length; t++) {
+                for (int i = 0; i < 4; i++) {
+                    currProb += alpha[t][i] * beta[t][i];
+                }
             }
+            
+            if (!isFirst) {
+                if (currProb < prevProb) {
+                    break;
+                }
+            } else {
+                isFirst = false;
+            }
+            
+            tempTransition = transition;
+            tempEmission = emission;
+            tempAlpha = alpha;
+            tempBeta = beta;
+            tempXi = xi;
+            tempGamma = gamma;
+            prevProb = currProb;
         }
         
-        for (int i = 0; i < arr.length; i++) {
-            for (int j = 0; j < arr[i].length; j++) {
-                arr[i][j] /= sum[i];
-            }
-        }
-        
-        return arr;
+        transition = tempTransition;
+        emission = tempEmission;
+        alpha = tempAlpha;
+        beta = tempBeta;
+        xi = tempXi;
+        gamma = tempGamma;
     }
     
-    public void trainImageModel(int[] obsSequence, double[] initial, double[][] transition, double[][] emission, int clusterCount) {
-        
+    public void trainImageModel() {
         // Alpha (Forward)
-        double[][] alpha = new double[obsSequence.length][4];
+        alpha = new double[keypointCluster.length][4];
         for (int j = 0; j < 4; j++) {
-            alpha[0][j] = initial[j] * emission[obsSequence[0]][j];
+            alpha[0][j] = initial[j] * emission[keypointCluster[0]][j];
         }
         
-        for (int t = 1; t < obsSequence.length; t++) {
+        for (int t = 1; t < keypointCluster.length; t++) {
             for (int j = 0; j < 4; j++) {
                 for (int i = 0; i < 4; i++) {
-                    alpha[t][j] += alpha[t-1][i] * transition[j][i] * emission[obsSequence[t]][j];
+                    alpha[t][j] += alpha[t-1][i] * transition[j][i] * emission[keypointCluster[t]][j];
                 }
             }
         }
         
         // Beta (Backward)
-        double[][] beta = new double[obsSequence.length][4];
+        beta = new double[keypointCluster.length][4];
         for (int i = 0; i < 4; i++) {
-            beta[obsSequence.length-1][i] = 1;
+            beta[keypointCluster.length-1][i] = 1;
         }
         
-        for (int t = obsSequence.length - 2; t >= 0; t--) {
+        for (int t = keypointCluster.length - 2; t >= 0; t--) {
             for (int i = 0; i < 4; i++) {
                 for (int j = 0; j < 4; j++) {
-                    beta[t][i] += beta[t+1][j] * transition[j][i] * emission[obsSequence[t+1]][j];
+                    beta[t][i] += beta[t+1][j] * transition[j][i] * emission[keypointCluster[t+1]][j];
                 }
             }
         }
         
         // Xi
-        double[][][] xi = new double[obsSequence.length-1][4][4];
-        for (int t = 0; t < obsSequence.length - 1; t++) {
+        xi = new double[keypointCluster.length-1][4][4];
+        for (int t = 0; t < keypointCluster.length - 1; t++) {
             for (int i = 0; i < 4; i++) {
                 for (int j = 0; j < 4; j++) {
-                    double numerator = alpha[t][i] * transition[j][i] * emission[obsSequence[t+1]][j] * beta[t+1][j];
+                    double numerator = alpha[t][i] * transition[j][i] * emission[keypointCluster[t+1]][j] * beta[t+1][j];
                     double enumerator = 0;
                     
                     for (int k = 0; k < 4; k++) {
                         for (int w = 0; w < 4; w++) {
-                            enumerator += alpha[t][k] * beta[t+1][j] * transition[w][k] * emission[obsSequence[t+1]][w];
+                            enumerator += alpha[t][k] * beta[t+1][j] * transition[w][k] * emission[keypointCluster[t+1]][w];
                         }
                     }
                     
@@ -140,8 +156,8 @@ public class HMMValidator extends Validator {
         }
         
         // Gamma
-        double[][] gamma = new double[obsSequence.length][4];
-        for (int t = 0; t < obsSequence.length; t++) {
+        gamma = new double[keypointCluster.length][4];
+        for (int t = 0; t < keypointCluster.length; t++) {
             for (int j = 0; j < 4; j++) {
                 double numerator = alpha[t][j] * beta[t][j];
                 double enumerator = 0;
@@ -160,7 +176,7 @@ public class HMMValidator extends Validator {
                 double numerator = 0;
                 double enumerator = 0;
                 
-                for (int t = 0; t < obsSequence.length - 1; t++) {
+                for (int t = 0; t < keypointCluster.length - 1; t++) {
                     numerator += xi[t][i][j];
                     for (int k = 0; k < 4; k++) {
                         enumerator += xi[t][i][k];
@@ -177,8 +193,8 @@ public class HMMValidator extends Validator {
                 double numerator = 0;
                 double enumerator = 0;
                 
-                for (int t = 0; t < obsSequence.length; t++) {
-                    if (obsSequence[t] == k) {
+                for (int t = 0; t < keypointCluster.length; t++) {
+                    if (keypointCluster[t] == k) {
                         numerator += gamma[t][j];
                     }
                     
@@ -190,14 +206,23 @@ public class HMMValidator extends Validator {
         }
         
         // Normalize new transition and emission probabilities
+        normalizeProbabilities(transition);
+        normalizeProbabilities(emission);
+    }
+    
+    public void normalizeProbabilities(double[][] arr) {
+        double[] sum = new double[arr.length];
         
-        
-        System.out.printf("NEW%n");
-        for (double[] trs : transition) {
-            for (double tr : trs) {
-                System.out.printf("%f ", tr);
+        for (int i = 0; i < arr.length; i++) {
+            for (int j = 0; j < arr[i].length; j++) {
+                sum[i] += arr[i][j];
             }
-            System.out.println("");
+        }
+        
+        for (int i = 0; i < arr.length; i++) {
+            for (int j = 0; j < arr[i].length; j++) {
+                arr[i][j] /= sum[i];
+            }
         }
     }
     
