@@ -40,6 +40,20 @@ public class ImageProcessor {
         return matches;
     }
     
+    public ArrayList<MatOfDMatch> matchKeypoints(ImageData testImage, ArrayList<ImageData> trainImages) {
+        ArrayList<MatOfDMatch> matches = new ArrayList<>();
+        
+        BFMatcher bf = new BFMatcher();
+        
+        for (ImageData trainImage : trainImages) {
+            MatOfDMatch temp = new MatOfDMatch();
+            bf.match(testImage.descriptor, trainImage.descriptor, temp);
+            matches.add(temp);
+        }
+        
+        return matches;
+    }
+    
     public void segmentImage() {
         
     }
