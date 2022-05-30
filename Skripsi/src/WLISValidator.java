@@ -13,7 +13,7 @@ public class WLISValidator extends Validator {
         this.testImage = testImage;
         this.matches = matches;
         this.keypointCount = testImage.descriptor.height();
-        this.trainImageCount = trainImageCount = matches.size();
+        this.trainImageCount = matches.size();
     }
     
     public void validateImage() {
@@ -66,10 +66,14 @@ public class WLISValidator extends Validator {
         System.out.println("testImg: " + testImage.path);
         int currIdx = 0;
         
+        boolean isValid = false;
         loop:
         for (ArrayList<ImageData> trainImage : trainImages) {
             for (ImageData imageData : trainImage) {
                 if (currIdx == finalImageIdx) {
+                    if (imageData.getIndex() == testImage.getIndex()) {
+                        isValid = true;
+                    }
                     System.out.println("trainImg: " + imageData.path);
                     break loop;
                 }
@@ -113,7 +117,6 @@ public class WLISValidator extends Validator {
             } else {
                 weights[i] = 1.0 - (d1 / d2);
             }
-//            System.out.println(weights[i]);
         }
         
         return weights;
@@ -131,7 +134,7 @@ public class WLISValidator extends Validator {
             }
         }
         
-        // matches.get(i).size() size = jumlah keypoint test
+        // matches.get(i) size = jumlah keypoint test
         // matches.get(i).get(j) size = byk pasangan per keypoint
         
         for (int i = 0; i < trainImageCount; i++) {
