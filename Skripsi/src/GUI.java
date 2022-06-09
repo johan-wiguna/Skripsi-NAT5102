@@ -321,6 +321,7 @@ public class GUI extends javax.swing.JFrame {
             lblResultWLIS.setText(null);
             lblResultHMM.setText(null);
             lblVerifyError.setText(null);
+            
             ImageMatcher im = new ImageMatcher();
             testImage.detectKeypoints(400);
 
@@ -398,6 +399,7 @@ public class GUI extends javax.swing.JFrame {
                 lblResultHMM.setForeground(clrRed);
                 lblResultHMM.setText("Not valid");
                 System.out.println("Not valid");
+                System.out.println("Max probability: " + hmmValidator.getMaxProbability());
                 System.out.println("Identical image not found.");
             }
             

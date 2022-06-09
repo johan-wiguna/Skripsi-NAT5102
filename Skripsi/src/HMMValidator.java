@@ -12,7 +12,7 @@ public class HMMValidator extends Validator {
     int keypointCount;
     int trainImageCount;
     boolean isValid;
-    double maxSimilarity;
+    double maxProbability;
 
     public HMMValidator(ArrayList<ImageData> trainImages, ImageData testImage, ArrayList<MatOfDMatch> matches, HMM[] trainHMM) {
         this.trainImages = trainImages;
@@ -21,6 +21,10 @@ public class HMMValidator extends Validator {
         this.trainHMM = trainHMM;
         this.keypointCount = testImage.descriptor.height();
         this.trainImageCount = matches.size();
+    }
+    
+    public double getMaxProbability() {
+        return maxProbability;
     }
     
     public void validateImage() {
@@ -36,7 +40,7 @@ public class HMMValidator extends Validator {
         
         Arrays.sort(testLK);
         
-        maxSimilarity = -1;
+        maxProbability = -1;
         
         for (int i = 0; i < trainImageCount; i++) {
             double currProb = 0;
@@ -68,20 +72,9 @@ public class HMMValidator extends Validator {
                 lastIdx = sortedIdx;
             }
             
-            double currSimilarity = currProb / trainHMM[i].getProbability() * 100;
-            
-            if (currSimilarity == 1 && currProb != 0) {
-                isValid = true;
-                break;
-            }
-            
-            if (currSimilarity > maxSimilarity) {
-                maxSimilarity = currSimilarity;
+            if (currProb > maxProbability) {
+                maxProbability = currProb;
             }
         }
-    }
-
-    public double getMaxSimilarity() {
-        return maxSimilarity;
     }
 }
