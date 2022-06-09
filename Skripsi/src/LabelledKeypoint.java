@@ -20,6 +20,13 @@ public class LabelledKeypoint implements Comparable<LabelledKeypoint> {
         this.x = x;
         this.y = y;
     }
+    
+    public LabelledKeypoint(int keypointIdx, double x, double y) {
+        this.label = label;
+        this.keypointIdx = keypointIdx;
+        this.x = x;
+        this.y = y;
+    }
 
     public int getLabel() {
         return label;
@@ -33,16 +40,16 @@ public class LabelledKeypoint implements Comparable<LabelledKeypoint> {
         return x;
     }
 
-    public void setX(double x) {
-        this.x = x;
+    public void setX(double newX) {
+        this.x = newX;
     }
 
     public double getY() {
         return y;
     }
 
-    public void setY(double y) {
-        this.y = y;
+    public void setY(double newY) {
+        this.y = newY;
     }
 
     @Override

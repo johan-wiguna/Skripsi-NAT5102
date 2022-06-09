@@ -1,5 +1,3 @@
-import java.util.*;
-
 public class Centroid {
     double x;
     double y;
@@ -17,11 +15,11 @@ public class Centroid {
         return y;
     }
 
-    public void setX(double x) {
-        this.x = x;
+    public void setX(double newX) {
+        this.x = newX;
     }
 
-    public void setY(double y) {
-        this.y = y;
+    public void setY(double newY) {
+        this.y = newY;
     }
 }

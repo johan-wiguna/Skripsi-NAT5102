@@ -2,37 +2,37 @@ import java.io.File;
 import java.util.ArrayList;
 
 public class FolderProcessor {
-    File basePath;
-    File[] folderPaths;
-    ArrayList<String>[] filePaths;
+    File folderPath;
+    ArrayList<String> strFilePaths;
 
     public FolderProcessor(String basePath) {
-        this.basePath = new File(basePath);
+        this.folderPath = new File(basePath);
+        this.strFilePaths = new ArrayList<>();
         storeImagesPath();
     }
-    
-    public File[] getFolderPaths() {
-        return folderPaths;
-    }
 
-    public ArrayList<String>[] getFilePaths() {
-        return filePaths;
+    public ArrayList<String> getStrFilePaths() {
+        return strFilePaths;
     }
     
     public void storeImagesPath() {
-        folderPaths = basePath.listFiles();
+        File[] filePaths = folderPath.listFiles();
         
-        filePaths = new ArrayList[folderPaths.length];
-        for (int i = 0; i < folderPaths.length; i++) {
-            filePaths[i] = new ArrayList<>();
-        }
-        
-        for (int i = 0; i < folderPaths.length; i++) {
-            File[] files = folderPaths[i].listFiles();
-            
-            for (int j = 0; j < files.length; j++) {
-                filePaths[i].add(files[j].toString());
+        for (int i = 0; i < filePaths.length; i++) {
+            String fileType = getFileType(filePaths[i].toString());
+            if (fileType.equalsIgnoreCase("png") || fileType.equalsIgnoreCase("jpg") || fileType.equalsIgnoreCase("jpeg")) {
+                strFilePaths.add(filePaths[i].toString());
             }
         }
+    }
+    
+    public static String getFileType(String path) {
+        String fileType = "";
+        int dotIdx = path.lastIndexOf('.');
+        if (dotIdx != -1) {
+            fileType = path.substring(dotIdx + 1);
+        }
+        
+        return fileType;
     }
 }

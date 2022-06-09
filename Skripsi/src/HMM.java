@@ -3,7 +3,6 @@ import org.opencv.core.*;
 
 public class HMM {
     ImageData image;
-    ArrayList<ArrayList<MatOfDMatch>> matches;
     int clusterCount;
     int[] keypointCluster;
     double[] initial = {1, 0, 0, 0};
@@ -13,6 +12,7 @@ public class HMM {
     double[][] beta;
     double[][][] xi;
     double[][] gamma;
+    double probability;
     
     public HMM(ImageData image, int clusterCount) {
         this.image = image;
@@ -41,17 +41,9 @@ public class HMM {
         normalizeProbabilities(transition);
         normalizeProbabilities(emission);
         
-        System.out.printf("OLD%n");
-        for (double[] trs : transition) {
-            for (double tr : trs) {
-                System.out.printf("%f ", tr);
-            }
-            System.out.println("");
-        }
-        System.out.println("");
-        
         // Determine bounds for this image
-        double[] imageBounds = segmentImage(image);
+        image.segmentImage();
+        double[] imageBounds = image.bounds;
         
         // Cluster keypoints
         KMeans km = new KMeans(clusterCount, imageBounds);
@@ -59,9 +51,53 @@ public class HMM {
         
         // Re-estimate parameter with Baum-Welch algorithm
         reestimateParameters();
+        
+        // Calculate probability for the image
+        calculateProbability();
     }
     
-    public void reestimateParameters() {
+    private void calculateProbability() {
+        image.segmentImage();
+        double[][] segmentRange = image.getSegmentRange();
+        KeyPoint[] kp = image.keypoint.toArray();
+        int keypointCount = kp.length;
+        LabelledKeypoint[] trainLK = new LabelledKeypoint[keypointCount];
+        
+        for (int i = 0; i < keypointCount; i++) {
+            trainLK[i] = new LabelledKeypoint(i, kp[i].pt.x, kp[i].pt.y);
+        }
+        
+        Arrays.sort(trainLK);
+        
+        int[] sortedState = new int[keypointCount];
+
+        for (int j = 0; j < keypointCount; j++) {
+            for (int k = 0; k < 4; k++) {
+                if (trainLK[j].getX() >= segmentRange[k][0] && trainLK[j].getX() < segmentRange[k][1]) {
+                    sortedState[trainLK[j].getKeypointIdx()] = k;
+                }
+            }
+        }
+        
+        int lastIdx = -1;
+        for (int j = 0; j < keypointCount; j++) {
+            int sortedIdx = trainLK[j].getKeypointIdx();
+            
+            if (j == 0) {
+                probability = initial[sortedState[sortedIdx]] * emission[keypointCluster[sortedIdx]][sortedState[sortedIdx]];
+            } else {
+                probability *= transition[sortedState[sortedIdx]][sortedState[lastIdx]] * emission[keypointCluster[sortedIdx]][sortedState[sortedIdx]];
+            }
+            
+            lastIdx = sortedIdx;
+        }
+    }
+
+    public double getProbability() {
+        return probability;
+    }
+    
+    private void reestimateParameters() {
         double prevProb = 0;
         
         double[][] tempTransition = transition;
@@ -107,7 +143,7 @@ public class HMM {
         gamma = tempGamma;
     }
     
-    public void trainImageModel() {
+    private void trainImageModel() {
         // Alpha (Forward)
         alpha = new double[keypointCluster.length][4];
         for (int j = 0; j < 4; j++) {
@@ -210,7 +246,7 @@ public class HMM {
         normalizeProbabilities(emission);
     }
     
-    public void normalizeProbabilities(double[][] arr) {
+    private void normalizeProbabilities(double[][] arr) {
         double[] sum = new double[arr.length];
         
         for (int i = 0; i < arr.length; i++) {
@@ -224,46 +260,5 @@ public class HMM {
                 arr[i][j] /= sum[i];
             }
         }
-    }
-    
-    public double[] segmentImage(ImageData img) {
-        KeyPoint[] keypoints = img.keypoints.toArray();
-        double[] imageBounds = new double[4];
-        double topBound = Double.MIN_VALUE;
-        double bottomBound = Double.MAX_VALUE;
-        double leftBound = Double.MAX_VALUE;
-        double rightBound = Double.MIN_VALUE;
-        
-        for (KeyPoint keypoint : keypoints) {
-            if (keypoint.pt.y > topBound) {
-                topBound = keypoint.pt.y;
-            }
-            if (keypoint.pt.y < bottomBound) {
-                bottomBound = keypoint.pt.y;
-            }
-            if (keypoint.pt.x < leftBound) {
-                leftBound = keypoint.pt.x;
-            }
-            if (keypoint.pt.x > rightBound) {
-                rightBound = keypoint.pt.x;
-            }
-        }
-        
-        imageBounds[0] = topBound;
-        imageBounds[1] = bottomBound;
-        imageBounds[2] = leftBound;
-        imageBounds[3] = rightBound;
-        
-        double newWidth = rightBound - leftBound;
-        double segmentWidth = newWidth / 4;
-        
-        double[][] segmentRange = new double[4][2];
-        
-        for (int i = 0; i < 4; i++) {
-            segmentRange[i][0] = segmentWidth * i + leftBound;
-            segmentRange[i][1] = segmentWidth * (i + 1) + leftBound;
-        }
-        
-        return imageBounds;
     }
 }

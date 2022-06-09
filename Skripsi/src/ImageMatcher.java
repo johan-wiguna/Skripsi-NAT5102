@@ -2,9 +2,7 @@ import java.util.*;
 import org.opencv.core.*;
 import org.opencv.features2d.*;
 
-public class ImageProcessor {
-    MatOfKeyPoint[] segmentedKeypoint;
-    
+public class ImageMatcher {
     public ArrayList<ArrayList<MatOfDMatch>> matchKeypoints(ImageData testImage, ArrayList<ImageData>[] trainImages, int k) {
         ArrayList<ArrayList<MatOfDMatch>> matches = new ArrayList<>();
         for (ArrayList<MatOfDMatch> match : matches) {
@@ -19,6 +17,23 @@ public class ImageProcessor {
                 bf.knnMatch(testImage.descriptor, trainImage.descriptor, temp, k);
                 matches.add(temp);
             }
+        }
+        
+        return matches;
+    }
+    
+    public ArrayList<ArrayList<MatOfDMatch>> matchKeypoints(ImageData testImage, ArrayList<ImageData> trainImages, int k) {
+        ArrayList<ArrayList<MatOfDMatch>> matches = new ArrayList<>();
+        for (ArrayList<MatOfDMatch> match : matches) {
+            match = new ArrayList<>();
+        }
+        
+        BFMatcher bf = new BFMatcher();
+        
+        for (ImageData trainImage : trainImages) {
+            ArrayList<MatOfDMatch> temp = new ArrayList<>();
+            bf.knnMatch(testImage.descriptor, trainImage.descriptor, temp, k);
+            matches.add(temp);
         }
         
         return matches;
@@ -53,10 +68,4 @@ public class ImageProcessor {
         
         return matches;
     }
-    
-    public void segmentImage() {
-        
-    }
-    
-    
 }

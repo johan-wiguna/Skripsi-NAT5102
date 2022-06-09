@@ -1,3 +1,4 @@
+import java.awt.Color;
 import java.util.*;
 import javax.swing.*;
 import java.awt.FlowLayout;
@@ -20,10 +21,16 @@ import org.opencv.imgcodecs.*;
  * @author johan
  */
 public class GUI extends javax.swing.JFrame {
+    double wlisThreshold = 0.9;
+    double hmmThreshold = 1;
     String testPath;
     String trainPath;
     ImageData testImage;
-    ArrayList<ImageData>[] trainImages;
+    ArrayList<ImageData> trainImages;
+    boolean testIsValid = false;
+    boolean trainIsValid = false;
+    Color clrRed = new java.awt.Color(255, 51, 0);
+    Color clrGreen = new java.awt.Color(51, 204, 51);
     
     public GUI() {
         initComponents();
@@ -57,12 +64,7 @@ public class GUI extends javax.swing.JFrame {
         jLabel4 = new javax.swing.JLabel();
         jLabel7 = new javax.swing.JLabel();
         lblResultHMM = new javax.swing.JLabel();
-        jLabel9 = new javax.swing.JLabel();
-        lblImageHMM = new javax.swing.JLabel();
-        btnBrowseTestClass = new javax.swing.JButton();
-        jLabel8 = new javax.swing.JLabel();
-        lblTestClass = new javax.swing.JLabel();
-        jLabel10 = new javax.swing.JLabel();
+        lblVerifyError = new javax.swing.JLabel();
 
         label2.setText("label2");
 
@@ -88,7 +90,7 @@ public class GUI extends javax.swing.JFrame {
             }
         });
 
-        lblPathTest.setFont(new java.awt.Font("Segoe UI", 0, 10)); // NOI18N
+        lblPathTest.setFont(new java.awt.Font("Segoe UI", 0, 11)); // NOI18N
         lblPathTest.setText("(No path chosen)");
         lblPathTest.setMaximumSize(new java.awt.Dimension(240, 16));
 
@@ -101,7 +103,7 @@ public class GUI extends javax.swing.JFrame {
             }
         });
 
-        lblPathTrain.setFont(new java.awt.Font("Segoe UI", 0, 10)); // NOI18N
+        lblPathTrain.setFont(new java.awt.Font("Segoe UI", 0, 11)); // NOI18N
         lblPathTrain.setText("(No path chosen)");
 
         btnVerify.setText("Verify test image");
@@ -118,35 +120,21 @@ public class GUI extends javax.swing.JFrame {
 
         jSeparator1.setOrientation(javax.swing.SwingConstants.VERTICAL);
 
-        jLabel2.setText("Test image:");
+        jLabel2.setText("Test image preview:");
 
         jSeparator2.setOrientation(javax.swing.SwingConstants.VERTICAL);
 
+        jLabel5.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jLabel5.setText("Weighted Longest Increasing Subsequence");
 
         jLabel6.setText("Result:");
 
+        jLabel4.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jLabel4.setText("Hidden Markov Model");
 
         jLabel7.setText("Result:");
 
-        jLabel9.setText("Most similar image:");
-
-        btnBrowseTestClass.setText("Browse...");
-        btnBrowseTestClass.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseClicked(java.awt.event.MouseEvent evt) {
-                btnBrowseTestClassMouseClicked(evt);
-            }
-        });
-        btnBrowseTestClass.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnBrowseTestClassActionPerformed(evt);
-            }
-        });
-
-        jLabel8.setText("Class:");
-
-        jLabel10.setText("Choose related test image class");
+        lblVerifyError.setFont(new java.awt.Font("Segoe UI", 0, 11)); // NOI18N
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -163,35 +151,28 @@ public class GUI extends javax.swing.JFrame {
                         .addComponent(jLabel3, javax.swing.GroupLayout.DEFAULT_SIZE, 240, Short.MAX_VALUE)
                         .addComponent(lblPathTest, javax.swing.GroupLayout.PREFERRED_SIZE, 230, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addComponent(lblPathTrain, javax.swing.GroupLayout.PREFERRED_SIZE, 230, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addComponent(btnBrowseTestClass)
-                    .addComponent(jLabel10, javax.swing.GroupLayout.PREFERRED_SIZE, 230, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(lblVerifyError, javax.swing.GroupLayout.PREFERRED_SIZE, 230, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 16, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jLabel2)
-                    .addComponent(lblTestImage, javax.swing.GroupLayout.PREFERRED_SIZE, 200, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(jLabel8)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(lblTestClass, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                    .addComponent(lblTestImage, javax.swing.GroupLayout.PREFERRED_SIZE, 200, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addGap(18, 18, 18)
                 .addComponent(jSeparator2, javax.swing.GroupLayout.PREFERRED_SIZE, 16, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                    .addGroup(layout.createSequentialGroup()
                         .addComponent(jLabel6)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(lblResultWLIS, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(lblResultWLIS, javax.swing.GroupLayout.PREFERRED_SIZE, 213, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addComponent(jLabel5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addGroup(layout.createSequentialGroup()
-                        .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE, 37, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(jLabel7)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(lblResultHMM, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                    .addComponent(jLabel4, javax.swing.GroupLayout.DEFAULT_SIZE, 240, Short.MAX_VALUE)
-                    .addComponent(jLabel9, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(lblImageHMM, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addContainerGap(17, Short.MAX_VALUE))
+                        .addComponent(lblResultHMM, javax.swing.GroupLayout.PREFERRED_SIZE, 213, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(jLabel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
                 .addComponent(jLabel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
@@ -209,11 +190,7 @@ public class GUI extends javax.swing.JFrame {
                             .addGroup(layout.createSequentialGroup()
                                 .addComponent(jLabel2)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(lblTestImage, javax.swing.GroupLayout.PREFERRED_SIZE, 155, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                    .addComponent(jLabel8)
-                                    .addComponent(lblTestClass, javax.swing.GroupLayout.PREFERRED_SIZE, 16, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                                .addComponent(lblTestImage, javax.swing.GroupLayout.PREFERRED_SIZE, 155, javax.swing.GroupLayout.PREFERRED_SIZE))
                             .addGroup(layout.createSequentialGroup()
                                 .addComponent(jLabel5)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -223,14 +200,10 @@ public class GUI extends javax.swing.JFrame {
                                 .addGap(58, 58, 58)
                                 .addComponent(jLabel4)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                    .addComponent(jLabel7)
-                                    .addComponent(lblResultHMM, javax.swing.GroupLayout.PREFERRED_SIZE, 16, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(jLabel9)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(lblImageHMM, javax.swing.GroupLayout.PREFERRED_SIZE, 160, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(lblResultHMM, javax.swing.GroupLayout.PREFERRED_SIZE, 16, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(jLabel7))))
+                        .addContainerGap(194, Short.MAX_VALUE))
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                             .addGroup(javax.swing.GroupLayout.Alignment.LEADING, layout.createSequentialGroup()
@@ -246,10 +219,8 @@ public class GUI extends javax.swing.JFrame {
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(lblPathTrain)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addComponent(jLabel10)
+                                .addComponent(lblVerifyError, javax.swing.GroupLayout.PREFERRED_SIZE, 16, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(btnBrowseTestClass)
-                                .addGap(35, 35, 35)
                                 .addComponent(btnVerify))
                             .addComponent(jSeparator1, javax.swing.GroupLayout.Alignment.LEADING))
                         .addGap(12, 12, 12))
@@ -277,22 +248,31 @@ public class GUI extends javax.swing.JFrame {
         if (returnVal == JFileChooser.APPROVE_OPTION) {
             File testFile = fc.getSelectedFile();
             testPath = testFile.getAbsolutePath();
-            testImage = new ImageData(testPath, false, -1);
             
-            BufferedImage bi = null;
-            try {
-                bi = ImageIO.read(new File(testPath));
-            } catch (IOException e) {
-                e.printStackTrace();
+            String fileType = getFileType(testPath);
+            
+            if (fileType.equalsIgnoreCase("png") || fileType.equalsIgnoreCase("jpg") || fileType.equalsIgnoreCase("jpeg")) {
+                testImage = new ImageData(testPath, false, -1);
+                BufferedImage bi = null;
+                try {
+                    bi = ImageIO.read(new File(testPath));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                Image img = bi.getScaledInstance(lblTestImage.getWidth(), lblTestImage.getHeight(), Image.SCALE_SMOOTH);
+
+                lblPathTest.setForeground(Color.BLACK);
+                lblPathTest.setText(testPath);
+                lblPathTest.setToolTipText(testPath);
+                lblTestImage.setIcon(new ImageIcon(img));
+                testIsValid = true;
+            } else {
+                lblPathTest.setForeground(clrRed);
+                lblPathTest.setText("File type not supported!");
+                lblTestImage.setIcon(null);
+                testIsValid = false;
             }
-            
-            Image img = bi.getScaledInstance(lblTestImage.getWidth(), lblTestImage.getHeight(), Image.SCALE_SMOOTH);
-            
-            lblPathTest.setText(testPath);
-            lblPathTest.setToolTipText(testPath);
-            lblTestImage.setIcon(new ImageIcon(img));
-        } else {
-            System.out.println("Cancelled by user.");
         }
     }//GEN-LAST:event_btnBrowseTestMouseClicked
 
@@ -304,55 +284,131 @@ public class GUI extends javax.swing.JFrame {
         if (returnVal == JFileChooser.APPROVE_OPTION) {
             File trainFolder = fc.getSelectedFile();
             trainPath = trainFolder.getAbsolutePath();
-            FolderProcessor fp = new FolderProcessor(trainPath);
-            trainImages = convertPathsToImageData(fp.getFilePaths(), true);
             
-            lblPathTrain.setText(trainPath);
-            lblPathTrain.setToolTipText(trainPath);
-        } else {
-            System.out.println("Cancelled by user.");
+            if (trainFolder.listFiles().length > 0) {
+                File[] filePaths = trainFolder.listFiles();
+                boolean imageFileExist = false;
+                for (int i = 0; i < filePaths.length; i++) {
+                    String fileType = getFileType(filePaths[i].toString());
+                    if (fileType.equalsIgnoreCase("png") || fileType.equalsIgnoreCase("jpg") || fileType.equalsIgnoreCase("jpeg")) {
+                        imageFileExist = true;
+                    }
+                }
+                
+                if (imageFileExist) {
+                    lblPathTrain.setForeground(Color.BLACK);
+                    lblPathTrain.setText(trainPath);
+                    lblPathTrain.setToolTipText(trainPath);
+                    trainIsValid = true;
+                } else {
+                    lblPathTrain.setForeground(clrRed);
+                    lblPathTrain.setText("No image found in the directory!");
+                    trainIsValid = false;
+                }
+            } else {
+                lblPathTrain.setForeground(clrRed);
+                lblPathTrain.setText("Folder can't be empty!");
+                trainIsValid = false;
+            }
+            
         }
     }//GEN-LAST:event_btnBrowseTrainMouseClicked
 
     private void btnVerifyMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnVerifyMouseClicked
-        ImageProcessor ip = new ImageProcessor();
-        testImage.detectKeypoints(200);
-        
-        ArrayList<ArrayList<MatOfDMatch>> matches = ip.matchKeypoints(testImage, trainImages, 20);
-        
-        // WLIS
-        WLISValidator wlis = new WLISValidator(trainImages, testImage, matches);
-        wlis.validateImage();
-    }//GEN-LAST:event_btnVerifyMouseClicked
+        if (testIsValid && trainIsValid) {
+            System.out.println(testPath);
+            System.out.println();
+            lblResultWLIS.setText(null);
+            lblResultHMM.setText(null);
+            lblVerifyError.setText(null);
+            ImageMatcher im = new ImageMatcher();
+            testImage.detectKeypoints(400);
 
-    private void btnBrowseTestClassActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBrowseTestClassActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_btnBrowseTestClassActionPerformed
+            FolderProcessor fp = new FolderProcessor(trainPath);
+            ArrayList<String> trainFilePaths = fp.getStrFilePaths();
+            trainImages = convertPathsToImageData(trainFilePaths, true, 400);
 
-    private void btnBrowseTestClassMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnBrowseTestClassMouseClicked
-        JFileChooser fc = new JFileChooser(trainPath);
-        fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-        int returnVal = fc.showOpenDialog(this);
-        
-        if (returnVal == JFileChooser.APPROVE_OPTION) {
-            File classFolder = fc.getSelectedFile();
-            String classPath = classFolder.getAbsolutePath();
-            int testClass = -1;
-            
-            for (int i = 0; i < trainImages.length; i++) {
-                System.out.println(trainImages[i].get(0).getClassPath());
-                if (classPath.equals(trainImages[i].get(0).getClassPath())) {
-                    testClass = i;
-                    lblTestClass.setText(trainImages[i].get(0).getClassPath());
-                    break;
+            // WLIS
+            long start1 = System.currentTimeMillis();
+            double totalScore = 0;
+            for (int i = 0; i < trainImages.size(); i++) {
+                ImageData currTest = trainImages.get(i);
+                ArrayList<ImageData> currTrain = new ArrayList<>();
+                for (int j = 0; j < trainImages.size(); j++) {
+                    if (j != i)
+                        currTrain.add(trainImages.get(j));
                 }
+
+                ArrayList<ArrayList<MatOfDMatch>> currMatches = im.matchKeypoints(currTest, currTrain, 20);
+
+                ArrayList<ImageData>[] arr = new ArrayList[1];
+                arr[0] = currTrain;
+
+                WLISValidator wlis = new WLISValidator(arr, currTest, currMatches);
+                wlis.validateImage();
+                totalScore += wlis.getMaxSimilarity();
+            }
+
+            double avgScore = totalScore / trainImages.size();
+            
+            ArrayList<ImageData>[] trainImagesArr = new ArrayList[1];
+            trainImagesArr[0] = trainImages;
+            ArrayList<ArrayList<MatOfDMatch>> matchesWLIS = im.matchKeypoints(testImage, trainImages, 20);
+            WLISValidator wlis = new WLISValidator(trainImagesArr, testImage, matchesWLIS);
+            wlis.validateImage();
+            long end1 = System.currentTimeMillis();
+            
+            System.out.print("WLIS: ");
+            if (wlis.getMaxSimilarity() >= avgScore * wlisThreshold) {
+                lblResultWLIS.setForeground(clrGreen);
+                lblResultWLIS.setText("Valid");
+                System.out.println("Valid");
+            } else {
+                lblResultWLIS.setForeground(clrRed);
+                lblResultWLIS.setText("Not valid");
+                System.out.println("Not valid");
             }
             
-            testImage.setIndex(testClass);
+            System.out.println("Test image score: " + wlis.getMaxSimilarity());
+            System.out.println("Average score: " + avgScore);
+            System.out.println("Time: " + (end1 - start1));
+            System.out.println("");
+            
+            // HMM
+            long start2 = System.currentTimeMillis();
+            HMM[] trainHMM = new HMM[trainImages.size()];
+            for (int i = 0; i < trainHMM.length; i++) {
+                HMM hmm = new HMM(trainImages.get(i), 3);
+                hmm.buildImageModel();
+                trainHMM[i] = hmm;
+            }
+
+            ArrayList<MatOfDMatch> matchesHMM = im.matchKeypoints(testImage, trainImages);
+            HMMValidator hmmValidator = new HMMValidator(trainImages, testImage, matchesHMM, trainHMM);
+            hmmValidator.validateImage();
+            long end2 = System.currentTimeMillis();
+            
+            System.out.print("HMM: ");
+            if (hmmValidator.isValid) {
+                lblResultHMM.setForeground(clrGreen);
+                lblResultHMM.setText("Valid");
+                System.out.println("Valid");
+                System.out.println("Identical image found.");
+            } else {
+                lblResultHMM.setForeground(clrRed);
+                lblResultHMM.setText("Not valid");
+                System.out.println("Not valid");
+                System.out.println("Identical image not found.");
+            }
+            
+            System.out.println("Time: " + (end2 - start2));
         } else {
-            System.out.println("Cancelled by user.");
+            lblVerifyError.setForeground(clrRed);
+            lblVerifyError.setText("Can't verify while there's still an error.");
         }
-    }//GEN-LAST:event_btnBrowseTestClassMouseClicked
+        
+        System.out.println("==========VERIFICATION DONE==========");
+    }//GEN-LAST:event_btnVerifyMouseClicked
 
     /**
      * @param args the command line arguments
@@ -392,20 +448,35 @@ public class GUI extends javax.swing.JFrame {
         });
     }
     
-    public static ArrayList<ImageData>[] convertPathsToImageData(ArrayList<String>[] paths, boolean imageType) {
-        ArrayList<ImageData>[] res = new ArrayList[paths.length];
-        for (int i = 0; i < paths.length; i++) {
-            res[i] = new ArrayList<>();
+    public static String getFileType(String path) {
+        String fileType = "";
+        int dotIdx = path.lastIndexOf('.');
+        if (dotIdx != -1) {
+            fileType = path.substring(dotIdx + 1);
         }
         
-        for (int i = 0; i < paths.length; i++) {
-            if (paths[i] != null) {
-                for (int j = 0; j < paths[i].size(); j++) {
-                    ImageData id = new ImageData(paths[i].get(j), imageType, i);
-                    id.detectKeypoints(400);
-                    res[i].add(id);
-                }
-            }
+        return fileType;
+    }
+    
+    public static ArrayList<ImageData> convertPathsToImageData(ArrayList<String> paths, boolean imageType) {
+        ArrayList<ImageData> res = new ArrayList<>();
+        
+        for (int i = 0; i < paths.size(); i++) {
+            ImageData id = new ImageData(paths.get(i), imageType, i);
+            id.detectKeypoints();
+            res.add(id);
+        }
+        
+        return res;
+    }
+    
+    public static ArrayList<ImageData> convertPathsToImageData(ArrayList<String> paths, boolean imageType, int keypointAmount) {
+        ArrayList<ImageData> res = new ArrayList<>();
+        
+        for (int i = 0; i < paths.size(); i++) {
+            ImageData id = new ImageData(paths.get(i), imageType, i);
+            id.detectKeypoints(keypointAmount);
+            res.add(id);
         }
         
         return res;
@@ -413,29 +484,24 @@ public class GUI extends javax.swing.JFrame {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnBrowseTest;
-    private javax.swing.JButton btnBrowseTestClass;
     private javax.swing.JButton btnBrowseTrain;
     private javax.swing.JButton btnVerify;
     private javax.swing.JLabel jLabel1;
-    private javax.swing.JLabel jLabel10;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel jLabel7;
-    private javax.swing.JLabel jLabel8;
-    private javax.swing.JLabel jLabel9;
     private javax.swing.JSeparator jSeparator1;
     private javax.swing.JSeparator jSeparator2;
     private java.awt.Label label2;
     private javax.swing.JLabel lblChooseTest;
-    private javax.swing.JLabel lblImageHMM;
     private javax.swing.JLabel lblPathTest;
     private javax.swing.JLabel lblPathTrain;
     private javax.swing.JLabel lblResultHMM;
     private javax.swing.JLabel lblResultWLIS;
-    private javax.swing.JLabel lblTestClass;
     private javax.swing.JLabel lblTestImage;
+    private javax.swing.JLabel lblVerifyError;
     // End of variables declaration//GEN-END:variables
 }

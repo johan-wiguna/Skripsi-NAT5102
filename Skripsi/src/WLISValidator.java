@@ -7,6 +7,8 @@ public class WLISValidator extends Validator {
     ArrayList<ArrayList<MatOfDMatch>> matches;
     int keypointCount;
     int trainImageCount;
+    boolean isValid;
+    double maxSimilarity;
     
     public WLISValidator(ArrayList<ImageData>[] trainImages, ImageData testImage, ArrayList<ArrayList<MatOfDMatch>> matches) {
         this.trainImages = trainImages;
@@ -14,6 +16,10 @@ public class WLISValidator extends Validator {
         this.matches = matches;
         this.keypointCount = testImage.descriptor.height();
         this.trainImageCount = matches.size();
+    }
+    
+    public double getMaxSimilarity() {
+        return maxSimilarity;
     }
     
     public void validateImage() {
@@ -24,7 +30,7 @@ public class WLISValidator extends Validator {
         ArrayList<ArrayList<LabelledKeypoint>> labelledKeypoint = labelMatches();
         
         // Finding LIS with the most weight by rotating the train image
-        double finalMaxWeight = Double.MIN_VALUE;
+        maxSimilarity = -1;
         int finalImageIdx = -1;
         
         for (int i = 0; i < labelledKeypoint.size(); i++) {
@@ -51,22 +57,18 @@ public class WLISValidator extends Validator {
                 if (currWeight > maxWeight) {
                     maxWeight = currWeight;
                 }
-                
             }
             
-            if (maxWeight > finalMaxWeight) {
-                finalMaxWeight = maxWeight;
+            if (maxWeight > maxSimilarity) {
+                maxSimilarity = maxWeight;
                 finalImageIdx = i;
             }
         }
-        System.out.println("----------------------------");
         
         // Calculate similarity between test image and the best matched train image
-        System.out.println("Weight: " + finalMaxWeight);
-        System.out.println("testImg: " + testImage.path);
         int currIdx = 0;
         
-        boolean isValid = false;
+        isValid = false;
         loop:
         for (ArrayList<ImageData> trainImage : trainImages) {
             for (ImageData imageData : trainImage) {
@@ -74,7 +76,7 @@ public class WLISValidator extends Validator {
                     if (imageData.getIndex() == testImage.getIndex()) {
                         isValid = true;
                     }
-                    System.out.println("trainImg: " + imageData.path);
+                    
                     break loop;
                 }
                 
@@ -83,7 +85,7 @@ public class WLISValidator extends Validator {
         }
     }
     
-    public double[] assignWeight() {
+    private double[] assignWeight() {
         double[] weights = new double[keypointCount];
         
         for (int i = 0; i < keypointCount; i++) {
@@ -122,7 +124,7 @@ public class WLISValidator extends Validator {
         return weights;
     }
     
-    public ArrayList<ArrayList<LabelledKeypoint>> labelMatches() {
+    private ArrayList<ArrayList<LabelledKeypoint>> labelMatches() {
         LabelledKeypoint[][] trainLabels = new LabelledKeypoint[trainImageCount][keypointCount];
         
         ImageData[] trainImagesMerged = new ImageData[trainImageCount];
@@ -138,7 +140,7 @@ public class WLISValidator extends Validator {
         // matches.get(i).get(j) size = byk pasangan per keypoint
         
         for (int i = 0; i < trainImageCount; i++) {
-            boolean[] kpTaken = new boolean[trainImagesMerged[i].keypoints.toArray().length];
+            boolean[] kpTaken = new boolean[trainImagesMerged[i].keypoint.toArray().length];
             
             for (int j = 0; j < matches.get(i).size(); j++) {
                 int trainKeypointIdx = -1;
@@ -152,7 +154,7 @@ public class WLISValidator extends Validator {
                     }
                 }
                 
-                KeyPoint[] kp = trainImagesMerged[i].keypoints.toArray();
+                KeyPoint[] kp = trainImagesMerged[i].keypoint.toArray();
                 
                 if (trainKeypointIdx != -1) {
                     double x = kp[trainKeypointIdx].pt.x;
@@ -189,7 +191,7 @@ public class WLISValidator extends Validator {
         return lstFiltered;
     }
  
-    public int[] getLIS(ArrayList<LabelledKeypoint> lk) {
+    private int[] getLIS(ArrayList<LabelledKeypoint> lk) {
         int n = lk.size();
         
         int[] arr = new int[n];
@@ -233,7 +235,7 @@ public class WLISValidator extends Validator {
         return lis;
     }
     
-    public double getTotalWeight(int[] lis, double[] keypointsWeight) {
+    private double getTotalWeight(int[] lis, double[] keypointsWeight) {
         double weight = 0.0;
         
         for (int i = 0; i < lis.length; i++) {

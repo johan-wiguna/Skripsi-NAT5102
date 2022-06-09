@@ -8,7 +8,7 @@ public class ImageData {
     int index;
     Mat image;
     Mat descriptor;
-    MatOfKeyPoint keypoints;
+    MatOfKeyPoint keypoint;
     double[] bounds;
     double[][] segmentRange;
     
@@ -16,28 +16,15 @@ public class ImageData {
         this.path = path;
         this.type = type;
         this.index = index;
-        keypoints = new MatOfKeyPoint();
+        keypoint = new MatOfKeyPoint();
         descriptor = new Mat();
     }
 
     public String getPath() {
         return path;
     }
-    
-    public String getClassPath() {
-        String classPath = "";
-        
-        for (int i = path.length() - 1; i >= 0; i--) {
-            if (path.charAt(i) == '\\') {
-                classPath = path.substring(0, i);
-                break;
-            }
-        }
-        
-        return classPath;
-    }
 
-    public boolean isType() {
+    public boolean getType() {
         return type;
     }
 
@@ -45,16 +32,16 @@ public class ImageData {
         return index;
     }
 
-    public Mat getImage() {
-        return image;
-    }
-
     public Mat getDescriptor() {
         return descriptor;
     }
 
-    public MatOfKeyPoint getKeypoints() {
-        return keypoints;
+    public MatOfKeyPoint getKeypoint() {
+        return keypoint;
+    }
+    
+    public double[][] getSegmentRange() {
+        return segmentRange;
     }
     
     public void setIndex(int index) {
@@ -65,25 +52,25 @@ public class ImageData {
         image = Imgcodecs.imread(path, Imgcodecs.IMREAD_GRAYSCALE);
         
         SIFT sift = SIFT.create();
-        sift.detectAndCompute(image, new Mat(), keypoints, descriptor);
+        sift.detectAndCompute(image, new Mat(), keypoint, descriptor);
     }
     
     public void detectKeypoints(int keypointAmount) {
         image = Imgcodecs.imread(path, Imgcodecs.IMREAD_GRAYSCALE);
         
         SIFT sift = SIFT.create(keypointAmount);
-        sift.detectAndCompute(image, new Mat(), keypoints, descriptor);
+        sift.detectAndCompute(image, new Mat(), keypoint, descriptor);
     }
     
     public void segmentImage() {
-        KeyPoint[] keypoints = this.keypoints.toArray();
+        KeyPoint[] kpArr = this.keypoint.toArray();
         bounds = new double[4];
-        double topBound = Double.MIN_VALUE;
+        double topBound = -1;
         double bottomBound = Double.MAX_VALUE;
         double leftBound = Double.MAX_VALUE;
-        double rightBound = Double.MIN_VALUE;
+        double rightBound = -1;
         
-        for (KeyPoint keypoint : keypoints) {
+        for (KeyPoint keypoint : kpArr) {
             if (keypoint.pt.y > topBound) {
                 topBound = keypoint.pt.y;
             }
