@@ -4,15 +4,15 @@ import org.opencv.core.DMatch;
 import org.opencv.core.KeyPoint;
 import org.opencv.core.MatOfDMatch;
 
-public class HMMValidator extends Validator {
+public class HMMValidator {
     ArrayList<ImageData> trainImages;
     ImageData testImage;
     ArrayList<MatOfDMatch> matches;
     HMM[] trainHMM;
     int keypointCount;
     int trainImageCount;
-    boolean isValid;
     double maxProbability;
+    double avgTrainProb;
 
     public HMMValidator(ArrayList<ImageData> trainImages, ImageData testImage, ArrayList<MatOfDMatch> matches, HMM[] trainHMM) {
         this.trainImages = trainImages;
@@ -25,6 +25,10 @@ public class HMMValidator extends Validator {
     
     public double getMaxProbability() {
         return maxProbability;
+    }
+
+    public double getAvgTrainProb() {
+        return avgTrainProb;
     }
     
     public void validateImage() {
@@ -41,6 +45,7 @@ public class HMMValidator extends Validator {
         Arrays.sort(testLK);
         
         maxProbability = -1;
+        double totalTrainProb = 0;
         
         for (int i = 0; i < trainImageCount; i++) {
             double currProb = 0;
@@ -75,6 +80,10 @@ public class HMMValidator extends Validator {
             if (currProb > maxProbability) {
                 maxProbability = currProb;
             }
+            
+            totalTrainProb += currHMM.getProbability();
         }
+        
+        avgTrainProb = totalTrainProb / trainImageCount;
     }
 }

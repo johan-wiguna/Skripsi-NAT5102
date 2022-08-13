@@ -1,13 +1,12 @@
 import java.util.*;
 import org.opencv.core.*;
 
-public class WLISValidator extends Validator {
+public class WLISValidator {
     ArrayList<ImageData>[] trainImages;
     ImageData testImage;
     ArrayList<ArrayList<MatOfDMatch>> matches;
     int keypointCount;
     int trainImageCount;
-    boolean isValid;
     double maxSimilarity;
     
     public WLISValidator(ArrayList<ImageData>[] trainImages, ImageData testImage, ArrayList<ArrayList<MatOfDMatch>> matches) {
@@ -31,11 +30,10 @@ public class WLISValidator extends Validator {
         
         // Finding LIS with the most weight by rotating the train image
         maxSimilarity = -1;
-        int finalImageIdx = -1;
         
         for (int i = 0; i < labelledKeypoint.size(); i++) {
             int[] lisInit = getLIS(labelledKeypoint.get(i));
-            double maxWeight = getTotalWeight(lisInit, keypointsWeight);
+            double maxWeight = getSimilarity(lisInit, keypointsWeight);
             int angle = 10;
             
             for (int j = 0; j < 360/angle; j++) {
@@ -52,7 +50,7 @@ public class WLISValidator extends Validator {
                 
                 Collections.sort(labelledKeypoint.get(i));
                 int[] currLIS = getLIS(labelledKeypoint.get(i));
-                double currWeight = getTotalWeight(currLIS, keypointsWeight);
+                double currWeight = getSimilarity(currLIS, keypointsWeight);
                 
                 if (currWeight > maxWeight) {
                     maxWeight = currWeight;
@@ -61,26 +59,6 @@ public class WLISValidator extends Validator {
             
             if (maxWeight > maxSimilarity) {
                 maxSimilarity = maxWeight;
-                finalImageIdx = i;
-            }
-        }
-        
-        // Calculate similarity between test image and the best matched train image
-        int currIdx = 0;
-        
-        isValid = false;
-        loop:
-        for (ArrayList<ImageData> trainImage : trainImages) {
-            for (ImageData imageData : trainImage) {
-                if (currIdx == finalImageIdx) {
-                    if (imageData.getIndex() == testImage.getIndex()) {
-                        isValid = true;
-                    }
-                    
-                    break loop;
-                }
-                
-                currIdx++;
             }
         }
     }
@@ -117,7 +95,10 @@ public class WLISValidator extends Validator {
             if (d2 == 0) {
                 weights[i] = 0.0;
             } else {
+//                System.out.println("d1 = " + d1);
+//                System.out.println("d2 = " + d2);
                 weights[i] = 1.0 - (d1 / d2);
+//                System.out.println("weight = " + weights[i]);
             }
         }
         
@@ -235,7 +216,7 @@ public class WLISValidator extends Validator {
         return lis;
     }
     
-    private double getTotalWeight(int[] lis, double[] keypointsWeight) {
+    private double getSimilarity(int[] lis, double[] keypointsWeight) {
         double weight = 0.0;
         
         for (int i = 0; i < lis.length; i++) {

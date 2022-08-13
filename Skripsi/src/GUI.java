@@ -1,14 +1,11 @@
 import java.awt.Color;
 import java.util.*;
 import javax.swing.*;
-import java.awt.FlowLayout;
-import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.image.*;
 import java.io.*;
 import javax.imageio.*;
 import org.opencv.core.*;
-import org.opencv.imgcodecs.*;
 
 /*
  * To change this license header, choose License Headers in Project Properties.
@@ -22,7 +19,7 @@ import org.opencv.imgcodecs.*;
  */
 public class GUI extends javax.swing.JFrame {
     double wlisThreshold = 0.9;
-    double hmmThreshold = 1;
+    double hmmThreshold = Math.pow(10, -40);
     String testPath;
     String trainPath;
     ImageData testImage;
@@ -241,7 +238,7 @@ public class GUI extends javax.swing.JFrame {
     }//GEN-LAST:event_btnVerifyActionPerformed
 
     private void btnBrowseTestMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnBrowseTestMouseClicked
-        JFileChooser fc = new JFileChooser("C:\\_My Files\\Johan\\GitHub\\Skripsi-NAT5102\\Dataset");
+        JFileChooser fc = new JFileChooser("C:\\_My Files\\Johan\\GitHub\\Skripsi-NAT5102\\Dataset\\Experiment");
         fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
         int returnVal = fc.showOpenDialog(this);
         
@@ -277,7 +274,7 @@ public class GUI extends javax.swing.JFrame {
     }//GEN-LAST:event_btnBrowseTestMouseClicked
 
     private void btnBrowseTrainMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnBrowseTrainMouseClicked
-        JFileChooser fc = new JFileChooser("C:\\_My Files\\Johan\\GitHub\\Skripsi-NAT5102\\Dataset");
+        JFileChooser fc = new JFileChooser("C:\\_My Files\\Johan\\GitHub\\Skripsi-NAT5102\\Dataset\\Experiment");
         fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
         int returnVal = fc.showOpenDialog(this);
         
@@ -321,13 +318,12 @@ public class GUI extends javax.swing.JFrame {
             lblResultWLIS.setText(null);
             lblResultHMM.setText(null);
             lblVerifyError.setText(null);
-            
             ImageMatcher im = new ImageMatcher();
-            testImage.detectKeypoints(400);
+            testImage.detectKeypoints(200);
 
             FolderProcessor fp = new FolderProcessor(trainPath);
             ArrayList<String> trainFilePaths = fp.getStrFilePaths();
-            trainImages = convertPathsToImageData(trainFilePaths, true, 400);
+            trainImages = convertPathsToImageData(trainFilePaths, true, 200);
 
             // WLIS
             long start1 = System.currentTimeMillis();
@@ -351,15 +347,15 @@ public class GUI extends javax.swing.JFrame {
             }
 
             double avgScore = totalScore / trainImages.size();
-            
+
             ArrayList<ImageData>[] trainImagesArr = new ArrayList[1];
             trainImagesArr[0] = trainImages;
             ArrayList<ArrayList<MatOfDMatch>> matchesWLIS = im.matchKeypoints(testImage, trainImages, 20);
             WLISValidator wlis = new WLISValidator(trainImagesArr, testImage, matchesWLIS);
             wlis.validateImage();
             long end1 = System.currentTimeMillis();
-            
-            System.out.print("WLIS: ");
+
+            System.out.println("WLIS: ");
             if (wlis.getMaxSimilarity() >= avgScore * wlisThreshold) {
                 lblResultWLIS.setForeground(clrGreen);
                 lblResultWLIS.setText("Valid");
@@ -370,8 +366,6 @@ public class GUI extends javax.swing.JFrame {
                 System.out.println("Not valid");
             }
             
-            System.out.println("Test image score: " + wlis.getMaxSimilarity());
-            System.out.println("Average score: " + avgScore);
             System.out.println("Time: " + (end1 - start1));
             System.out.println("");
             
@@ -390,17 +384,14 @@ public class GUI extends javax.swing.JFrame {
             long end2 = System.currentTimeMillis();
             
             System.out.print("HMM: ");
-            if (hmmValidator.isValid) {
+            if (hmmValidator.getMaxProbability() >= hmmValidator.getAvgTrainProb() * hmmThreshold) {
                 lblResultHMM.setForeground(clrGreen);
                 lblResultHMM.setText("Valid");
                 System.out.println("Valid");
-                System.out.println("Identical image found.");
             } else {
                 lblResultHMM.setForeground(clrRed);
                 lblResultHMM.setText("Not valid");
                 System.out.println("Not valid");
-                System.out.println("Max probability: " + hmmValidator.getMaxProbability());
-                System.out.println("Identical image not found.");
             }
             
             System.out.println("Time: " + (end2 - start2));
