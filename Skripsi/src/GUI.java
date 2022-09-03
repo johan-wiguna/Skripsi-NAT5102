@@ -238,7 +238,8 @@ public class GUI extends javax.swing.JFrame {
     }//GEN-LAST:event_btnVerifyActionPerformed
 
     private void btnBrowseTestMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnBrowseTestMouseClicked
-        JFileChooser fc = new JFileChooser("C:\\_My Files\\Johan\\GitHub\\Skripsi-NAT5102\\Dataset\\Experiment");
+//        JFileChooser fc = new JFileChooser("C:\\_My Files\\Johan\\GitHub\\Skripsi-NAT5102\\Dataset\\Experiment");
+        JFileChooser fc = new JFileChooser(System.getProperty("user.dir"));
         fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
         int returnVal = fc.showOpenDialog(this);
         
@@ -274,7 +275,8 @@ public class GUI extends javax.swing.JFrame {
     }//GEN-LAST:event_btnBrowseTestMouseClicked
 
     private void btnBrowseTrainMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnBrowseTrainMouseClicked
-        JFileChooser fc = new JFileChooser("C:\\_My Files\\Johan\\GitHub\\Skripsi-NAT5102\\Dataset\\Experiment");
+//        JFileChooser fc = new JFileChooser("C:\\_My Files\\Johan\\GitHub\\Skripsi-NAT5102\\Dataset\\Experiment");
+        JFileChooser fc = new JFileChooser(System.getProperty("user.dir"));
         fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
         int returnVal = fc.showOpenDialog(this);
         
